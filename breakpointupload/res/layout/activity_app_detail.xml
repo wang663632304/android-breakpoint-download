@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" >
+    
+	<ImageButton 
+	    android:id="@id/ib_activity_app_detail_return"
+	    android:layout_width="wrap_content"
+	    android:layout_height="wrap_content"
+	    android:src="@drawable/icon_return"
+	    android:contentDescription="@null"
+	    />
+	
+	<TextView
+	    android:id="@id/tv_activity_app_detail_appname"
+	   	android:layout_width="wrap_content"
+	    android:layout_height="wrap_content"
+	    android:textIsSelectable="true"
+	    android:textSize="40sp"
+	    android:text="ooooo"
+	    android:layout_toRightOf="@id/ib_activity_app_detail_return"
+	    />
+	
+	<ImageButton
+	    android:id="@id/ib_activity_app_detail_cancel"
+	   	android:layout_width="wrap_content"
+	    android:layout_height="wrap_content"
+	    android:src="@drawable/icon_cancel"
+	    android:contentDescription="@null"
+	    android:layout_toRightOf="@id/tv_activity_app_detail_appname"
+	    />
+	
+	<ImageButton 
+	    android:id="@id/ib_activity_app_detail_pause_continue"
+	   	android:layout_width="wrap_content"
+	    android:layout_height="wrap_content"
+	    android:src="@drawable/icon_continue"
+	    android:contentDescription="@null"
+	    android:layout_toRightOf="@id/ib_activity_app_detail_cancel"
+	    />
+
+	<ProgressBar
+	    android:id="@id/pb_activity_app_detail_download"
+	    style="?android:attr/progressBarStyleHorizontal"
+	    android:layout_width="200dip"
+	    android:layout_height="10dip"
+	    android:layout_below="@id/ib_activity_app_detail_return"
+	    android:layout_marginTop="18dp"
+	    android:max="100"
+	    android:progress="0"
+	    android:progressDrawable="@drawable/progress_bar_layer" />
+
+</RelativeLayout>

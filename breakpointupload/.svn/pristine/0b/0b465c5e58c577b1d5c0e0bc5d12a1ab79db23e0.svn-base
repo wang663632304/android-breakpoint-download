@@ -1,0 +1,145 @@
+package com.tubb.mutildownload.bak;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.RandomAccessFile;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
+import org.apache.http.HttpStatus;
+
+import android.os.Handler;
+import android.os.Message;
+import android.util.Log;
+
+/**
+ * 下载线程类
+ * @author Tibib
+ *
+ */
+public class DownloadThread extends Thread {
+	
+	private static final String TAG = "DownloadThread";
+	private File saveFile;
+	private URL downUrl;
+	private long block;
+	private int threadId = -1;	
+	private long downLength;
+	private FileDownloader downloader;
+	
+	/**
+	 * 构造方法
+	 * @param downloader 下载器
+	 * @param downUrl 下载地址
+	 * @param saveFile 保存路径
+	 * @param block 每个线程负责下载的大小
+	 * @param downLength 已经下载了多长
+	 * @param threadId 线程ID
+	 */
+	public DownloadThread(FileDownloader downloader, URL downUrl, File saveFile, long block, long downLength, int threadId) {
+		this.downUrl = downUrl;
+		this.saveFile = saveFile;
+		this.block = block;
+		this.downloader = downloader;
+		this.threadId = threadId;
+		this.downLength = downLength;
+	}
+	
+	@Override
+	public void run() {
+		
+		RandomAccessFile threadfile = null;
+		InputStream inStream = null;
+		HttpURLConnection http = null;
+		if(downLength < block){//未下载完成
+			try {
+				//使用Get方式下载
+				http = (HttpURLConnection) downUrl.openConnection();
+				http.setConnectTimeout(15 * 1000);
+				http.setRequestMethod("GET");
+				http.setRequestProperty("Accept", "image/gif, image/jpeg, image/pjpeg, image/pjpeg, application/x-shockwave-flash, application/xaml+xml, application/vnd.ms-xpsdocument, application/x-ms-xbap, application/x-ms-application, application/vnd.ms-excel, application/vnd.ms-powerpoint, application/msword, */*");
+				http.setRequestProperty("Accept-Language", "zh-CN");
+				http.setRequestProperty("Referer", downUrl.toString()); 
+				http.setRequestProperty("Charset", "UTF-8");
+				
+				long startPos = block * (threadId - 1) + downLength;//开始位置
+				long endPos = block * threadId -1;//结束位置
+				http.setRequestProperty("Range", "bytes=" + startPos + "-"+ endPos);//设置获取实体数据的范围
+				http.setRequestProperty("User-Agent", "Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.2; Trident/4.0; .NET CLR 1.1.4322; .NET CLR 2.0.50727; .NET CLR 3.0.04506.30; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729)");
+				http.setRequestProperty("Connection", "Keep-Alive");
+				
+				Log.i(TAG, "code:"+http.getResponseCode());
+				
+				
+				int respCode = http.getResponseCode();
+				
+				if(respCode == HttpStatus.SC_PARTIAL_CONTENT){
+					inStream = http.getInputStream();
+					byte[] buffer = new byte[1024*256];
+					int offset = 0;
+					threadfile = new RandomAccessFile(this.saveFile, "rwd");
+					threadfile.seek(startPos);
+					
+					//是否读到末尾并且下载器属于运行状态
+					while (downloader.isRun()&&((offset = inStream.read(buffer)) != -1)) {
+						
+						Log.i(TAG, this.threadId+" offset");
+						
+						threadfile.write(buffer, 0, offset);
+						downLength += offset;
+						//记录所有下载的总长度
+						downloader.append(offset);
+						//实时更新（速度太慢了）
+						downloader.update(this.threadId, downLength);
+					}
+				}
+				
+			} catch (Exception e) { //线程下载过程中被中断
+				
+				Handler finishHandler = downloader.getFinishHandler();
+				Message msg = new Message();
+				msg.what = 1;//下载失败
+				finishHandler.sendMessage(msg);
+				
+				//暂停下载
+				downloader.setRun(false);
+				
+				print("Thread "+ this.threadId+ ":"+ e);
+			}finally{
+				
+				if(inStream!=null){
+					try {
+						inStream.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+					
+				}
+				
+				if(threadfile!=null){
+					try {
+						threadfile.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+				
+				if(http!=null){
+					http.disconnect();
+				}
+			}
+		}else{
+			print("Thread " + this.threadId + " download finish");
+		}
+	}
+
+	/**
+	 * 打印日志信息
+	 * @param msg
+	 */
+	private static void print(String msg){
+		Log.i(TAG, msg);
+	}
+
+}

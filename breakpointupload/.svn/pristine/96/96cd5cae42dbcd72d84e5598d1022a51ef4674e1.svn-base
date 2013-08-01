@@ -1,0 +1,105 @@
+package com.justsy.eleschoolbag.mutildownload;
+
+
+import java.util.HashMap;
+import java.util.Map;
+
+import android.content.Context;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+
+/**
+ * @author 网友
+ * 文件服务
+ */
+public class MutilDownloadDBService {
+	private MutilDownloadDBOpenHelper openHelper;
+
+	public MutilDownloadDBService(Context context) {
+		openHelper = new MutilDownloadDBOpenHelper(context);
+	}
+
+	public Map<Integer, Long> getMutilThreadProgress(String urlPath){
+		SQLiteDatabase db = openHelper.getReadableDatabase();
+		Cursor cursor = db.rawQuery("select threadid, downlength from filedownlog where downpath=?", new String[]{urlPath});
+		Map<Integer, Long> data = new HashMap<Integer, Long>();
+		
+		while(cursor.moveToNext()){
+			data.put(cursor.getInt(0), cursor.getLong(1));
+		}
+		
+		cursor.close();
+		db.close();
+		return data;
+	}
+	
+	/**
+	 * 保存每条线程已经下载的文件长度
+	 * @param path
+	 * @param map
+	 */
+	public void save(String path,  Map<Integer, Long> map){//int threadid, int position
+		SQLiteDatabase db = openHelper.getWritableDatabase();
+		db.beginTransaction();
+		
+		try{
+			for(Map.Entry<Integer, Long> entry : map.entrySet()){
+				db.execSQL("insert into filedownlog(downpath, threadid, downlength) values(?,?,?)",
+						new Object[]{path, entry.getKey(), entry.getValue()});
+			}
+			
+			db.setTransactionSuccessful();
+		}finally{
+			db.endTransaction();
+		}
+		
+		db.close();
+	}
+	
+	/**
+	 * 实时更新每条线程已经下载的文件长度
+	 * @param path
+	 * @param map
+	 */
+	public void updateThreadsProgress(String path, Map<Integer, Long> map){
+		
+		SQLiteDatabase db = openHelper.getWritableDatabase();
+		db.beginTransaction();
+		
+		try{
+			for(Map.Entry<Integer, Long> entry : map.entrySet()){
+				db.execSQL("update filedownlog set downlength=? where downpath=? and threadid=?",
+						new Object[]{entry.getValue(), path, entry.getKey()});
+			}
+			db.setTransactionSuccessful();
+		}finally{
+			db.endTransaction();
+		}
+		
+		db.close();
+	}
+	
+	public void updatePreThreadProgress(String urlPath, int threadid, long pos){
+		SQLiteDatabase db = openHelper.getWritableDatabase();
+		db.beginTransaction();
+		
+		try{
+				db.execSQL("update filedownlog set downlength=? where downpath=? and threadid=?",
+						new Object[]{pos, urlPath, threadid});
+			db.setTransactionSuccessful();
+		}finally{
+			db.endTransaction();
+		}
+	}
+	
+	/**
+	 * 当文件下载完成后，删除对应的下载记录
+	 * @param path
+	 */
+	public void delete(String path){
+		SQLiteDatabase db = openHelper.getWritableDatabase();
+		db.execSQL("delete from filedownlog where downpath=?", new Object[]{path});
+		db.close();
+	}
+}
+

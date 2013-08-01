@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item type="id" name="lv_download">false</item>
+    <item type="id" name="adapter_download_list_app_name">false</item>
+    <item type="id" name="ib_activity_app_detail_return">false</item>
+    <item type="id" name="tv_activity_app_detail_appname">false</item>
+    <item type="id" name="ib_activity_app_detail_cancel">false</item>
+    <item type="id" name="ib_activity_app_detail_pause_continue">false</item>
+    <item type="id" name="pb_activity_app_detail_download">false</item>
+</resources>

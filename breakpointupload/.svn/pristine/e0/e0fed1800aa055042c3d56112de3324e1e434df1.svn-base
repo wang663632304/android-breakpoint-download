@@ -1,0 +1,118 @@
+package com.justsy.eleschoolbag.mutildownload;
+
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
+
+public class MutilDownloadHandler {
+
+    protected static final int SUCCESS_MESSAGE = 0;
+    protected static final int FAILURE_MESSAGE = 1;
+    protected static final int START_MESSAGE = 2;
+    protected static final int FINISH_MESSAGE = 3;
+
+    private Handler handler;
+    
+    public MutilDownloadHandler(){
+        if(Looper.myLooper() != null) {
+            handler = new Handler(){
+                @Override
+                public void handleMessage(Message msg){
+                	MutilDownloadHandler.this.handleMessage(msg);
+                }
+            };
+        }
+    }
+    
+    private void handleMessage(Message msg){
+    	
+    	int what = msg.what;
+    	
+    	switch (what) {
+		case SUCCESS_MESSAGE:
+			String responseSuccessMsg = (String) msg.obj;
+			handleSuccessMessage(responseSuccessMsg);
+			break;
+		case FAILURE_MESSAGE:
+			String responseFailureMsg = (String) msg.obj;
+			handleFailureMessage(responseFailureMsg);
+			break;
+		case START_MESSAGE:
+			onStart();
+			break;
+		case FINISH_MESSAGE:
+			onFinish();
+			break;
+		default:
+			break;
+		}
+    }
+    
+    public void onFinish() {}
+
+	public void onStart() {}
+
+	private void handleFailureMessage(String responseFailureMsg) {
+    	onFailure(responseFailureMsg);
+	}
+
+	public void onFailure(String responseFailureMsg) {
+		onFailure();
+	}
+
+	public void onFailure() {}
+
+	private void handleSuccessMessage(String responseMsg) {
+    	onSuccess(responseMsg);
+	}
+
+	public void onSuccess(String responseMsg) {
+		onSuccess();
+	}
+
+	public void onSuccess() {}
+
+	void sendResponseMessage(int responseCode, String msg){
+    	if(responseCode >= 300){
+    		sendFailureMessage(msg);
+    	}else{
+    		sendSuccessMessage(msg);
+    	}
+    }
+
+	private void sendSuccessMessage(String msg) {
+		sendMessage(obtainMessage(SUCCESS_MESSAGE, msg));
+	}
+
+    protected void sendFailureMessage(String msg) {
+        sendMessage(obtainMessage(FAILURE_MESSAGE, msg));
+    }
+
+    protected void sendMessage(Message msg) {
+        if(handler != null){
+            handler.sendMessage(msg);
+        } else {
+            handleMessage(msg);
+        }
+    }
+
+    protected Message obtainMessage(int what, Object response) {
+        Message msg = null;
+        if(handler != null){
+            msg = this.handler.obtainMessage(what, response);
+        }else{
+            msg = Message.obtain();
+            msg.what = what;
+            msg.obj = response;
+        }
+        return msg;
+    }
+	
+    protected void sendStartMessage() {
+        sendMessage(obtainMessage(START_MESSAGE, null));
+    }
+
+    protected void sendFinishMessage() {
+        sendMessage(obtainMessage(FINISH_MESSAGE, null));
+    }
+}

@@ -1,0 +1,99 @@
+package com.justsy.mutildownload;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
+import java.net.URL;
+import java.net.UnknownHostException;
+
+import org.apache.http.HttpStatus;
+
+public class SingleDownloadThread implements Runnable {
+	
+	private File saveFile;
+	private String urlPath;
+	private int threadId;
+	private MutilDownloadService downloader;
+	
+	protected SingleDownloadThread(MutilDownloadService downloader, String urlPath, File saveFile, int threadId) {
+		this.urlPath = urlPath;
+		this.saveFile = saveFile;
+		this.threadId = threadId;
+		this.downloader = downloader;
+	}
+	
+	@Override
+	public void run() {
+		download();
+	}
+
+	private void download() {
+		HttpURLConnection conn = null;
+		BufferedInputStream bis = null;
+		BufferedOutputStream bos = null;
+		try {
+			URL url = new URL(urlPath);
+			conn = (HttpURLConnection) url.openConnection();
+			conn.setConnectTimeout(15 * 1000);
+			conn.setRequestMethod("GET");
+			int respCode = conn.getResponseCode();
+			
+			if(respCode == HttpStatus.SC_OK){
+				bis = new BufferedInputStream(conn.getInputStream());
+				bos = new BufferedOutputStream(new FileOutputStream(saveFile));
+				byte[] buffer = new byte[1024*4];
+				int offset = 0;
+				while (((offset = bis.read(buffer)) != -1)) {
+					bos.write(buffer, 0, offset);
+				}
+				downloader.sendDownloadSuccessMsg(threadId);
+			}else{
+				downloader.sendDownloadFailureMsg(threadId, new Exception(
+						String.format("error code : %d", respCode)));
+			}
+		} catch (UnknownHostException e1) {
+			update(e1);
+		}catch (SocketException e2) {
+			update(e2);
+		}catch (SocketTimeoutException e3) {
+			update(e3);
+		}catch (IOException e4) { // 线程下载过程中被中断
+			update(e4);
+		}finally {
+			close(conn, bis, bos);
+		}
+	}
+	
+	private void update(IOException e4) {
+		downloader.sendDownloadFailureMsg(threadId, e4);
+	}
+	
+	private void close(HttpURLConnection conn, BufferedInputStream bis,
+			BufferedOutputStream bos) {
+		if(bis!=null){
+			try {
+				bis.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		if(bos != null){
+			try {
+				bos.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		if(conn != null){
+			conn.disconnect();
+		}
+	}
+
+}

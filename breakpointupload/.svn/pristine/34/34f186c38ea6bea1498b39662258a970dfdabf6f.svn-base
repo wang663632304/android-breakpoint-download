@@ -1,0 +1,118 @@
+package com.justsy.eleschoolbag.mutildownload;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.RandomAccessFile;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
+import org.apache.http.HttpStatus;
+
+/**
+ * 下载线程类
+ * @author Tibib
+ *
+ */
+public class MutilDownloadThread extends Thread {
+	
+	private File saveFile;
+	private String urlPath;
+	private long block;
+	private int threadId = -1;	
+	private long downLength;
+	private MutilDownloadClient downloader;
+	
+	/**
+	 * 构造方法
+	 * @param downloader 下载器
+	 * @param downUrl 下载地址
+	 * @param saveFile 保存路径
+	 * @param block 每个线程负责下载的大小
+	 * @param downLength 已经下载了多长
+	 * @param threadId 线程ID
+	 */
+	public MutilDownloadThread(MutilDownloadClient downloader, String urlPath, File saveFile, long block, long downLength, int threadId) {
+		this.urlPath = urlPath;
+		this.saveFile = saveFile;
+		this.block = block;
+		this.downloader = downloader;
+		this.threadId = threadId;
+		this.downLength = downLength;
+	}
+	
+	@Override
+	public void run() {
+		
+		RandomAccessFile threadfile = null;
+		InputStream inStream = null;
+		HttpURLConnection http = null;
+		if(downLength < block){//未下载完成
+			try {
+				URL url = new URL(urlPath);
+				//使用Get方式下载
+				http = (HttpURLConnection) url.openConnection();
+				http.setConnectTimeout(15 * 1000);
+				http.setRequestMethod("GET");
+				http.setRequestProperty("Accept", "image/gif, image/jpeg, image/pjpeg, image/pjpeg, application/x-shockwave-flash, application/xaml+xml, application/vnd.ms-xpsdocument, application/x-ms-xbap, application/x-ms-application, application/vnd.ms-excel, application/vnd.ms-powerpoint, application/msword, */*");
+				http.setRequestProperty("Accept-Language", "zh-CN");
+				http.setRequestProperty("Referer", url.toString()); 
+				http.setRequestProperty("Charset", "UTF-8");
+				
+				long startPos = block * (threadId - 1) + downLength;//开始位置
+				long endPos = block * threadId -1;//结束位置
+				http.setRequestProperty("Range", "bytes=" + startPos + "-"+ endPos);//设置获取实体数据的范围
+				http.setRequestProperty("User-Agent", "Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.2; Trident/4.0; .NET CLR 1.1.4322; .NET CLR 2.0.50727; .NET CLR 3.0.04506.30; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729)");
+				http.setRequestProperty("Connection", "Keep-Alive");
+				
+				int respCode = http.getResponseCode();
+				
+				if(respCode == HttpStatus.SC_PARTIAL_CONTENT){
+					inStream = http.getInputStream();
+					byte[] buffer = new byte[1024*256];
+					int offset = 0;
+					threadfile = new RandomAccessFile(this.saveFile, "rwd");
+					threadfile.seek(startPos);
+					
+					while (!downloader.isStop() && ((offset = inStream.read(buffer)) != -1)) {
+						
+						threadfile.write(buffer, 0, offset);
+	
+						//实时更新（速度太慢了）
+						//downloader.update(threadId, downLength);
+					}
+				}
+				
+			} catch (Exception e) { //线程下载过程中被中断
+				
+			}finally{
+				
+				if(inStream!=null){
+					try {
+						inStream.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+					
+				}
+				
+				if(threadfile!=null){
+					try {
+						threadfile.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+				
+				if(http!=null){
+					http.disconnect();
+				}
+			}
+		}else{
+			
+			
+			
+		}
+	}
+
+}

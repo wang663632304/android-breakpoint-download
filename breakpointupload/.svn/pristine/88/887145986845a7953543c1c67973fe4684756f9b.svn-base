@@ -1,0 +1,60 @@
+package com.example.mutildownloadtest;
+
+import java.util.List;
+
+import android.content.Context;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.BaseAdapter;
+import android.widget.TextView;
+
+public class DownloadListAdapter extends BaseAdapter {
+	
+	private LayoutInflater mInflater;
+	private List<String> downloadList;
+	
+	public DownloadListAdapter(Context context, List<String> downloadList){
+		this.downloadList = downloadList;
+		this.mInflater = LayoutInflater.from(context); 
+	}
+
+	@Override
+	public int getCount() {
+		return downloadList.size();
+	}
+
+	@Override
+	public Object getItem(int position) {
+		return downloadList.get(position);
+	}
+
+	@Override
+	public long getItemId(int id) {
+		return id;
+	}
+
+	@Override
+	public View getView(int position, View convertView, ViewGroup parent) {
+		
+		ViewHolder holder; 
+		if(convertView == null){
+			convertView = mInflater.inflate(R.layout.adapter_download_list, null);
+			holder = new ViewHolder();
+			holder.name = (TextView) convertView.findViewById(R.id.adapter_download_list_app_name);
+			convertView.setTag(holder);
+			
+		}else{
+			holder = (ViewHolder) convertView.getTag();
+		}
+
+		holder.name.setText(downloadList.get(position));
+		
+		return convertView;
+	}
+	
+	static class ViewHolder {
+		TextView name;
+	}
+
+}

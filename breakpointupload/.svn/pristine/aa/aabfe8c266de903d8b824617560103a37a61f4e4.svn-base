@@ -1,0 +1,33 @@
+package com.example.mutildownloadtest;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import android.app.Activity;
+import android.os.Bundle;
+import android.widget.ListView;
+
+public class DownloadActivity extends Activity {
+	
+	private ListView lv_download;
+	private List<String> lv_download_data;
+	
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_download);
+		
+		lv_download = (ListView) findViewById(R.id.lv_download);
+		
+		lv_download_data = new ArrayList<String>();
+		lv_download_data.add("QQ2013");
+		lv_download_data.add("QQ2012");
+		lv_download_data.add("QQ2011");
+		lv_download_data.add("QQ2010");
+		lv_download_data.add("QQ2009");
+		
+		lv_download.setAdapter(new DownloadListAdapter(this, lv_download_data));
+		
+	}
+
+}
